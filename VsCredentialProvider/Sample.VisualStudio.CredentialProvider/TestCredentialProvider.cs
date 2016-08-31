@@ -11,7 +11,7 @@ namespace Sample.VisualStudio.CredentialProvider
 {
 
     [Export(typeof(IVsCredentialProvider))]
-    public sealed class SampleCredentialProvider
+    public sealed class TestCredentialProvider
         : IVsCredentialProvider
     {
         /// <summary>
@@ -40,32 +40,43 @@ namespace Sample.VisualStudio.CredentialProvider
                 throw new ArgumentNullException(nameof(uri));
             }
 
-            // todo: validate if the uri is a valid server uri
+            Trace.TraceInformation($"TestCredentialProvider.GetCredentialsAsync was called for uri {uri}.");
 
-            try
+            if (uri != new Uri("http://localhost"))
             {
-                // todo: do whatever authentication needs to happen against this specific server (e.g. OAuth flow, Federated Identity handshake)
-                // result of this operation should provide you with a username and secure (temporary) access token to authenticate against this particular server
+                // By default, this provider is not applicable.
+                Trace.TraceInformation("Provider not applicable.");
 
-                var token = new SecureString();
-                token.AppendChar('s');
-                token.AppendChar('e');
-                token.AppendChar('c');
-                token.AppendChar('r');
-                token.AppendChar('e');
-                token.AppendChar('t');
-                token.MakeReadOnly();
-
-                return new SampleCredentials(username: "username", token: token);
+                return null;
             }
-            catch (TaskCanceledException)
+            else
             {
-                Trace.TraceError($"Credentials acquisition for server {uri} was cancelled by the user.");
-                throw;
-            }
-            catch (Exception ex)
-            {
-                Trace.TraceError($"Credentials acquisition for server {uri} failed with error: {ex.Message}");
+                // Using http://localhost as test Uri will initiate a flow that results in a testable response.
+                try
+                {
+                    // todo: do whatever authentication needs to happen against this specific server (e.g. OAuth flow, Federated Identity handshake)
+                    // result of this operation should provide you with a username and secure (temporary) access token to authenticate against this particular server
+
+                    var token = new SecureString();
+                    token.AppendChar('s');
+                    token.AppendChar('e');
+                    token.AppendChar('c');
+                    token.AppendChar('r');
+                    token.AppendChar('e');
+                    token.AppendChar('t');
+                    token.MakeReadOnly();
+
+                    return new TestCredentials(username: "username", token: token);
+                }
+                catch (TaskCanceledException)
+                {
+                    Trace.TraceError($"Credentials acquisition for server {uri} was cancelled by the user.");
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    Trace.TraceError($"Credentials acquisition for server {uri} failed with error: {ex.Message}");
+                }
             }
 
             return null;

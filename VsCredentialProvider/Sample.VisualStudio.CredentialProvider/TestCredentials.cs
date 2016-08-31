@@ -4,13 +4,13 @@ using System.Security;
 
 namespace Sample.VisualStudio.CredentialProvider
 {
-    public sealed class SampleCredentials
+    public sealed class TestCredentials
         : ICredentials
     {
         private readonly string _username;
         private readonly SecureString _token;
 
-        internal SampleCredentials(string username, SecureString token)
+        internal TestCredentials(string username, SecureString token)
         {
             _username = username;
             _token = token;
