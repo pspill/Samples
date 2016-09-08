@@ -1,6 +1,7 @@
 ﻿using System;
 using System.ComponentModel.Composition;
 using System.Diagnostics;
+using System.Linq;
 using System.Net;
 using System.Security;
 using System.Threading;
@@ -11,7 +12,7 @@ namespace Sample.VisualStudio.CredentialProvider
 {
 
     [Export(typeof(IVsCredentialProvider))]
-    public sealed class TestCredentialProvider
+    public class TestCredentialProvider
         : IVsCredentialProvider
     {
         /// <summary>
@@ -40,45 +41,36 @@ namespace Sample.VisualStudio.CredentialProvider
                 throw new ArgumentNullException(nameof(uri));
             }
 
-            Trace.TraceInformation($"TestCredentialProvider.GetCredentialsAsync was called for uri {uri}.");
+            var className = this.GetType().Name;
 
-            if (uri != new Uri("http://localhost"))
-            {
-                // By default, this provider is not applicable.
-                Trace.TraceInformation("Provider not applicable.");
+            Trace.TraceInformation($"{className}.GetCredentialsAsync was called for uri {uri}.");
 
-                return null;
-            }
-            else
+            var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
+            var responseUser = query[$"{className}-responseUser"];
+            var responsePassword = query[$"{className}-responsePassword"];
+
+            if (responsePassword != null)
             {
-                // Using http://localhost as test Uri will initiate a flow that results in a testable response.
                 try
                 {
-                    // todo: do whatever authentication needs to happen against this specific server (e.g. OAuth flow, Federated Identity handshake)
-                    // result of this operation should provide you with a username and secure (temporary) access token to authenticate against this particular server
-
                     var token = new SecureString();
-                    token.AppendChar('s');
-                    token.AppendChar('e');
-                    token.AppendChar('c');
-                    token.AppendChar('r');
-                    token.AppendChar('e');
-                    token.AppendChar('t');
-                    token.MakeReadOnly();
+                    responsePassword.ToList<char>().ForEach(x => token.AppendChar(x));
 
-                    return new TestCredentials(username: "username", token: token);
+                    return new TestCredentials(username: responseUser ?? "username", token: token);
                 }
                 catch (TaskCanceledException)
                 {
-                    Trace.TraceError($"Credentials acquisition for server {uri} was cancelled by the user.");
+                    Trace.TraceError($"{className}.GetCredentialsAsync Credentials acquisition for server {uri} was cancelled by the user.");
                     throw;
                 }
                 catch (Exception ex)
                 {
-                    Trace.TraceError($"Credentials acquisition for server {uri} failed with error: {ex.Message}");
+                    Trace.TraceError($"{className}.GetCredentialsAsync Credentials acquisition for server {uri} failed with error: {ex.Message}");
                 }
             }
 
+            // By default, this provider is not applicable.
+            Trace.TraceInformation($"{className}.GetCredentialsAsync Provider not applicable.");
             return null;
         }
     }
